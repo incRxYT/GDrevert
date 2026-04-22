@@ -86,7 +86,7 @@ Click **③ APPLY DOWNGRADE** and confirm. The tool will back up your files, cop
 
 ## Why v2.2074 specifically
 
-Manifest ID `7678373534998244044` maps to GD v2.2074 — the last version fully compatible with the current Geode mod ecosystem. Using the manifest ID guarantees you get exactly that build every time regardless of what Steam has cached.
+Manifest ID `7678373534998244044` maps to GD v2.2074 — the last version fully compatible with many older geode mods like Xdbot. Using the manifest ID guarantees you get exactly that build every time regardless of what Steam has cached.
 
 ---
 
