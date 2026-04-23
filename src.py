@@ -24,10 +24,13 @@ DEPOT_ID     = "322171"
 MANIFEST_ID  = "7678373534998244044"
 DEPOT_CMD    = f"download_depot {APP_ID} {DEPOT_ID} {MANIFEST_ID}"
 
-GEODE_DLL    = "Geode.dll"
-GEODE_FOLDER = "geode"
-GEODE_URL    = "https://geode-sdk.org/install"
-ACF_FILE     = f"appmanifest_{APP_ID}.acf"
+GEODE_DLL      = "Geode.dll"
+GEODE_FOLDER   = "geode"
+GEODE_VERSION  = "v4.10.2"
+# v4.10.2 is the final Geode release for GD 2.2074
+GEODE_URL      = "https://github.com/geode-sdk/geode/releases/tag/v4.10.2"
+GEODE_DL_WIN   = "https://github.com/geode-sdk/geode/releases/download/v4.10.2/geode-installer-win.exe"
+ACF_FILE       = f"appmanifest_{APP_ID}.acf"
 
 GD_EXE       = "GeometryDash.exe"
 COCOS_DLL    = "libcocos2d.dll"
@@ -92,12 +95,98 @@ def is_gd_running() -> bool:
         return False
 
 
-def check_geode(dest: Path) -> tuple[bool, str]:
+def get_geode_installed_version(dest: Path):
+    """
+    Try to read the installed Geode version from its on-disk metadata.
+    Returns a bare version string like '4.10.2', or None if unreadable.
+    """
+    import json
+
+    candidates = [
+        dest / "geode" / "about.json",
+        dest / "geode" / "config" / "geode.json",
+        dest / "geode" / "geode.json",
+        dest / "geode" / "resources" / "geode.loader" / "about.json",
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                for key in ("version", "geode", "loader_version"):
+                    if key in data:
+                        ver = str(data[key]).lstrip("v")
+                        if ver:
+                            return ver
+            except Exception:
+                continue
+
+    # Fallback: read DLL file version via Windows API
+    dll_path = dest / GEODE_DLL
+    if dll_path.exists():
+        try:
+            import ctypes
+            size = ctypes.windll.version.GetFileVersionInfoSizeW(str(dll_path), None)
+            if size:
+                buf = ctypes.create_string_buffer(size)
+                ctypes.windll.version.GetFileVersionInfoW(str(dll_path), 0, size, buf)
+                verinfo = ctypes.c_void_p()
+                verlen  = ctypes.c_uint()
+                ctypes.windll.version.VerQueryValueW(
+                    buf, "\\", ctypes.byref(verinfo), ctypes.byref(verlen)
+                )
+                class VS_FIXEDFILEINFO(ctypes.Structure):
+                    _fields_ = [
+                        ("dwSignature",        ctypes.c_uint32),
+                        ("dwStrucVersion",     ctypes.c_uint32),
+                        ("dwFileVersionMS",    ctypes.c_uint32),
+                        ("dwFileVersionLS",    ctypes.c_uint32),
+                        ("dwProductVersionMS", ctypes.c_uint32),
+                        ("dwProductVersionLS", ctypes.c_uint32),
+                        ("dwFileFlagsMask",    ctypes.c_uint32),
+                        ("dwFileFlags",        ctypes.c_uint32),
+                        ("dwFileOS",           ctypes.c_uint32),
+                        ("dwFileType",         ctypes.c_uint32),
+                        ("dwFileSubtype",      ctypes.c_uint32),
+                        ("dwFileDateMS",       ctypes.c_uint32),
+                        ("dwFileDateLS",       ctypes.c_uint32),
+                    ]
+                info = ctypes.cast(verinfo, ctypes.POINTER(VS_FIXEDFILEINFO)).contents
+                ms   = info.dwFileVersionMS
+                ls   = info.dwFileVersionLS
+                major = (ms >> 16) & 0xFFFF
+                minor = ms & 0xFFFF
+                patch = (ls >> 16) & 0xFFFF
+                if major > 0:
+                    return f"{major}.{minor}.{patch}"
+        except Exception:
+            pass
+
+    return None
+
+
+def check_geode(dest: Path):
+    """
+    Returns (is_correct_version: bool, status_message: str, installed_version: str|None).
+    Correct means Geode is present AND exactly GEODE_VERSION (v4.10.2).
+    """
     has_dll    = (dest / GEODE_DLL).exists()
     has_folder = (dest / GEODE_FOLDER).exists()
-    if has_dll or has_folder:
-        return True, "Geode detected ✓"
-    return False, "Geode not found"
+
+    if not has_dll and not has_folder:
+        return False, "Not installed", None
+
+    installed = get_geode_installed_version(dest)
+
+    if installed is None:
+        return False, "Installed (version unreadable - may be wrong!)", None
+
+    target = GEODE_VERSION.lstrip("v")  # "4.10.2"
+
+    if installed == target:
+        return True, f"v{installed} (correct) ✓", installed
+
+    return False, f"Wrong version: v{installed}  (need {GEODE_VERSION})", installed
 
 
 def is_acf_readonly(acf: Path) -> bool:
@@ -217,7 +306,7 @@ class GDDowngrader(tk.Tk):
             ("depot",  "Depot Download"),
             ("gd",     "GD Running"),
             ("acf",    "Manifest Lock"),
-            ("geode",  "Geode"),
+            ("geode",  "Geode v4.10.2"),
         ]
         for key, label in items:
             row = tk.Frame(status_outer, bg=C["panel"])
@@ -371,11 +460,16 @@ class GDDowngrader(tk.Tk):
             R["acf"].config(text="ACF not found", fg=C["subtext"])
 
         if self._dest and self._dest.exists():
-            geode_ok, geode_msg = check_geode(self._dest)
-            R["geode"].config(
-                text=geode_msg,
-                fg=C["green"] if geode_ok else C["gold"]
-            )
+            geode_ok, geode_msg, _ = check_geode(self._dest)
+            if geode_ok:
+                color = C["green"]
+            elif geode_msg.startswith("Wrong version"):
+                color = C["red"]
+            elif geode_msg == "Not installed":
+                color = C["gold_dim"]
+            else:
+                color = C["red"]
+            R["geode"].config(text=geode_msg, fg=color)
         else:
             R["geode"].config(text="GD not found", fg=C["subtext"])
 
@@ -454,10 +548,37 @@ class GDDowngrader(tk.Tk):
                 lock_acf(self._acf, self._log)
 
                 # Geode check
-                geode_ok, _ = check_geode(self._dest)
+                geode_ok, geode_msg, geode_ver = check_geode(self._dest)
                 if not geode_ok:
-                    self._log("⚠ Geode not found. Opening installer page...")
-                    webbrowser.open(GEODE_URL)
+                    if geode_ver:
+                        self._log(f"\u26a0 Wrong Geode version: v{geode_ver}")
+                        self._log(f"  GD 2.2074 needs Geode {GEODE_VERSION}, not v{geode_ver}")
+                        self._log(f"  -> Download: {GEODE_DL_WIN}")
+                        def _ask_wrong(ver=geode_ver):
+                            msg = (
+                                f"You have Geode v{ver} installed which targets a different GD version.\n\n"
+                                f"GD 2.2074 requires Geode {GEODE_VERSION} specifically.\n\n"
+                                f"YES = download the correct installer ({GEODE_VERSION})\n"
+                                f"NO  = open the GitHub releases page\n\n"
+                                f"Uninstall your current Geode before installing {GEODE_VERSION}!"
+                            )
+                            choice = messagebox.askyesno(f"Wrong Geode Version: v{ver}", msg)
+                            webbrowser.open(GEODE_DL_WIN if choice else GEODE_URL)
+                        self.after(0, _ask_wrong)
+                    else:
+                        self._log(f"\u26a0 Geode not installed. You need {GEODE_VERSION} for GD 2.2074.")
+                        self._log(f"  -> {GEODE_DL_WIN}")
+                        def _ask_missing():
+                            msg = (
+                                f"Geode was not found in your GD folder.\n\n"
+                                f"You need Geode {GEODE_VERSION} (last version for GD 2.2074).\n\n"
+                                f"YES = open the direct Windows installer\n"
+                                f"NO  = open the GitHub releases page\n\n"
+                                f"Do NOT install a newer version - it wont work with 2.2074."
+                            )
+                            choice = messagebox.askyesno(f"Geode {GEODE_VERSION} Required", msg)
+                            webbrowser.open(GEODE_DL_WIN if choice else GEODE_URL)
+                        self.after(0, _ask_missing)
 
                 self._set_progress(100)
                 self._log("── Downgrade complete! GD is now v2.2074 ──")
