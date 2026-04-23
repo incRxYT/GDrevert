@@ -544,8 +544,10 @@
       <div class="step">
         <span class="step-num">06</span>
         <div>
-          <p class="step-title">Geode Check</p>
-          <p class="step-desc">gdrevert scans for <code>Geode.dll</code> or the <code>geode/</code> folder. If Geode isn't installed, the installer page opens automatically.</p>
+          <p class="step-title">Geode v4.10.2 Check</p>
+          <p class="step-desc">
+            gdrevert scans for <code>Geode.dll</code> or the <code>geode/</code> folder. If Geode isn't installed, a dialog offers a direct download of <strong>v4.10.2</strong> — the final Geode release for GD 2.2074. Installing a newer version won't work.
+          </p>
         </div>
       </div>
 
@@ -594,8 +596,8 @@
 
       <div class="feature">
         <span class="feature-icon">⚙</span>
-        <p class="feature-title">Geode Detection</p>
-        <p class="feature-desc">Checks for Geode post-downgrade and links you to the installer if it's missing.</p>
+        <p class="feature-title">Geode v4.10.2 Detection</p>
+        <p class="feature-desc">Checks for Geode post-downgrade. If missing, prompts with a direct installer link for v4.10.2 — the last 2.2074-compatible release.</p>
       </div>
 
       <div class="feature">
@@ -619,14 +621,30 @@
     </div>
   </section>
 
-  <!-- Requirements -->
+  <!-- Geode callout -->
+  <section style="border-top: 1px solid var(--border); padding: 40px 0 0;">
+    <p class="section-label">// Geode Compatibility</p>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 60px;">
+      <div style="background: var(--panel); padding: 24px 22px;">
+        <p style="font-family: var(--display); font-weight:700; font-size:0.82rem; color: var(--gold); letter-spacing:0.06em; margin-bottom:10px;">✓ USE THIS VERSION</p>
+        <p style="font-family: var(--display); font-weight:800; font-size:1.4rem; color: var(--text); margin-bottom:8px;">Geode v4.10.2</p>
+        <p style="font-size:0.78rem; color: var(--sub); line-height:1.7; margin-bottom:16px;">The final Geode release for GD 2.2074. Fixes crashes from 4.10.1 on Android32. gdrevert links directly to this version's installer.</p>
+        <a href="https://github.com/geode-sdk/geode/releases/tag/v4.10.2" target="_blank" class="btn btn-primary" style="font-size:0.75rem; padding: 9px 18px;">↓ Download v4.10.2 ↗</a>
+      </div>
+      <div style="background: var(--panel); padding: 24px 22px;">
+        <p style="font-family: var(--display); font-weight:700; font-size:0.82rem; color: var(--red); letter-spacing:0.06em; margin-bottom:10px;">✗ DO NOT USE</p>
+        <p style="font-family: var(--display); font-weight:800; font-size:1.4rem; color: var(--sub); margin-bottom:8px;">Geode v5.x +</p>
+        <p style="font-size:0.78rem; color: var(--sub); line-height:1.7;">Newer Geode versions target GD 2.208+ and are not compatible with 2.2074. gdrevert will warn you if a wrong version is detected.</p>
+      </div>
+    </div>
+  </section>
   <section>
     <p class="section-label">// Requirements</p>
     <div style="font-size:0.82rem; color: var(--sub); line-height:2;">
       <div>► <span style="color:var(--text)">Windows</span> — uses winreg and Windows file APIs</div>
       <div>► <span style="color:var(--text)">Python 3.10+</span> — stdlib only, no pip required</div>
       <div>► <span style="color:var(--text)">Steam</span> — with Geometry Dash owned</div>
-      <div>► <span style="color:var(--text)">Geode (optional)</span> — tool will link installer if missing</div>
+      <div>► <span style="color:var(--text)">Geode v4.10.2 (optional)</span> — tool links direct installer for the correct version</div>
     </div>
   </section>
 
