@@ -6,7 +6,7 @@
 
 ## What it does
 
-gdrevert handles every step of the [Steam Guide downgrade method](https://steamcommunity.com/sharedfiles/filedetails/?id=...) so you don't have to do it manually:
+gdrevert handles every step of the [Steam Guide downgrade method](https://steamcommunity.com/sharedfiles/filedetails/?id=3652003759) so you don't have to do it manually:
 > Warning This Will Break Geode If You Do Not Have A Older Version Of Geode!
 
 1. Opens the Steam console and gives you the exact depot command to paste
